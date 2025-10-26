@@ -1,0 +1,33 @@
+# Java class files
+*.class
+
+# VS Code
+.vscode/
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Compiled files
+output/
+*.jar
+
+# JFlex and CUP generated files
+parser/sym.java
+parser/parser.java
+scanner/Lexer.java
+
+# IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
