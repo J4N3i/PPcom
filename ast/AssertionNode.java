@@ -2,11 +2,12 @@ package ast;
 
 /**
  * Represents an assertion statement
- * Types: STATUS, HEADER_EQUALS, HEADER_CONTAINS, BODY_CONTAINS
+ * Types: STATUS, STATUS_RANGE, HEADER_EQUALS, HEADER_CONTAINS, BODY_CONTAINS
  */
 public class AssertionNode extends ASTNode {
     public enum AssertionType {
         STATUS,           // expect status = 200
+        STATUS_RANGE,     // expect status in 200..299
         HEADER_EQUALS,    // expect header "K" = "V"
         HEADER_CONTAINS,  // expect header "K" contains "V"
         BODY_CONTAINS     // expect body contains "text"
@@ -15,11 +16,21 @@ public class AssertionNode extends ASTNode {
     private AssertionType type;
     private String headerKey;  // For header assertions
     private String expectedValue; // String or Integer as string
+    private int rangeMin;      // For status range assertions
+    private int rangeMax;      // For status range assertions
     
     // For status assertions
     public AssertionNode(AssertionType type, int statusCode) {
         this.type = type;
         this.expectedValue = String.valueOf(statusCode);
+    }
+    
+    // For status range assertions
+    public AssertionNode(AssertionType type, int rangeMin, int rangeMax) {
+        this.type = type;
+        this.rangeMin = rangeMin;
+        this.rangeMax = rangeMax;
+        this.expectedValue = rangeMin + ".." + rangeMax;
     }
     
     // For header assertions
@@ -51,11 +62,21 @@ public class AssertionNode extends ASTNode {
         return Integer.parseInt(expectedValue);
     }
     
+    public int getRangeMin() {
+        return rangeMin;
+    }
+    
+    public int getRangeMax() {
+        return rangeMax;
+    }
+    
     @Override
     public String toString() {
         switch (type) {
             case STATUS:
                 return String.format("AssertStatus(%s)", expectedValue);
+            case STATUS_RANGE:
+                return String.format("AssertStatusRange(%d..%d)", rangeMin, rangeMax);
             case HEADER_EQUALS:
                 return String.format("AssertHeaderEquals(%s = %s)", headerKey, expectedValue);
             case HEADER_CONTAINS:

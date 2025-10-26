@@ -6,70 +6,48 @@ import java.util.*;
 
 /* Parser code */
 parser code {:
-    // Custom error formatting
-    private String formatError(int line, String message) {
-        return String.format("Line %d: %s", line, message);
-    }
-
     public void syntax_error(Symbol cur_token) {
-        String errorMsg;
+        String errorMsg = "\n❌ Syntax Error at line " + cur_token.left + ", column " + cur_token.right;
         
-        if (cur_token.value != null) {
-            Symbol prev = previous_token();
-            String prevValue = prev != null ? String.valueOf(prev.value) : "";
-            
-            // Specific error cases based on context
-            if (cur_token.value.toString().matches("^\\d.*") && prevValue.equals("let")) {
-                errorMsg = formatError(cur_token.left, "expected IDENT after 'let'");
-            }
-            else if (cur_token.value instanceof Integer && 
-                     (prevValue.equals("body") || prevValue.equals("="))) {
-                errorMsg = formatError(cur_token.left, "expected STRING after 'body ='");
-            }
-            else if (cur_token.value instanceof String && 
-                     prevValue.equals("status")) {
-                errorMsg = formatError(cur_token.left, "expected NUMBER for status");
-            }
-            else if (!String.valueOf(cur_token.value).endsWith(";") && 
-                     (prevValue.equals("200") || prevValue.matches(".*\".*"))) {
-                errorMsg = formatError(cur_token.left, "expected ';' after request");
-            }
-            else {
-                errorMsg = formatError(cur_token.left, 
-                    String.format("unexpected token: %s", cur_token.value));
-            }
+        // Check what token was expected based on the current state
+        String tokenValue = cur_token.value != null ? cur_token.value.toString() : "unknown";
+        
+        // Check if this is likely a missing semicolon after a request
+        if (cur_token.sym == sym.EXPECT) {
+            errorMsg = "Expected ';' after request at line " + cur_token.left + ", column " + cur_token.right + ":";
+            errorMsg += "\n   -> Expecting semicolon ';' after a request";
+            errorMsg += "\n   -> Example 1: GET \"/api/users\";";
+            errorMsg += "\n   -> Example 2: DELETE \"/api/users/1\";";
+            report_error(errorMsg, null);
+            System.exit(1);
+        }
+        // Provide specific error messages based on the token type
+        else if (cur_token.sym == sym.NUMBER) {
+            // Check if this appears after 'let' keyword - likely an invalid identifier
+            errorMsg += "\n   -> Invalid identifier '" + tokenValue + "'";
+            errorMsg += "\n   -> Identifiers cannot start with a digit";
+            errorMsg += "\n   -> Valid examples: user1, userId, admin_role";
+        } else if (tokenValue.matches("^[0-9].*")) {
+            errorMsg += "\n   -> Invalid identifier '" + tokenValue + "'";
+            errorMsg += "\n   -> Identifiers must start with a letter or underscore";
         } else {
-            errorMsg = formatError(cur_token.left, "unexpected end of input");
+            errorMsg += "\n   -> Unexpected token: " + tokenValue;
         }
         
         report_error(errorMsg, null);
     }
 
     public void report_error(String message, Object info) {
-        // Print error in a more visible format
-        System.err.println("\nERROR: " + message);
+        System.err.println(message);
     }
     
-    public void unrecovered_syntax_error(Symbol cur_token) {
-        System.err.println("\nFATAL ERROR: Unrecoverable syntax error at line " + 
-                          cur_token.left);
-        System.exit(1);
-    }
-
-    private Symbol previous_token() {
-        try {
-            return ((Symbol)stack.peek());
-        } catch (Exception e) {
-            return null;
-        }
-    }
 :};
 
 /* Terminals (tokens) */
 terminal CONFIG, BASE_URL, HEADER, LET, TEST;
 terminal GET, POST, PUT, DELETE;
-terminal EXPECT, STATUS, BODY, CONTAINS;
-terminal EQUALS, SEMICOLON, LBRACE, RBRACE;
+terminal EXPECT, STATUS, BODY, CONTAINS, IN;
+terminal EQUALS, SEMICOLON, LBRACE, RBRACE, DOTDOT;
 terminal String IDENTIFIER, STRING, MULTILINE_STRING;
 terminal Integer NUMBER;
 
@@ -174,10 +152,6 @@ variables ::=
 variable ::=
     LET IDENTIFIER:name EQUALS value:val SEMICOLON
     {:
-        // Check if identifier starts with a digit
-        if (name.matches("^\\d.*")) {
-            report_error("Identifier cannot start with a digit: " + name, null);
-        }
         RESULT = new VariableNode(name, val);
     :}
     ;
@@ -246,7 +220,7 @@ request ::=
     {:
         RESULT = new RequestNode(RequestNode.HttpMethod.DELETE, path);
     :}
-    | POST STRING:path request_block_opt:items SEMICOLON
+    | POST STRING:path request_block_opt:items
     {:
         RequestNode req = new RequestNode(RequestNode.HttpMethod.POST, path);
         for (Object item : items) {
@@ -258,7 +232,7 @@ request ::=
         }
         RESULT = req;
     :}
-    | PUT STRING:path request_block_opt:items SEMICOLON
+    | PUT STRING:path request_block_opt:items
     {:
         RequestNode req = new RequestNode(RequestNode.HttpMethod.PUT, path);
         for (Object item : items) {
@@ -293,10 +267,12 @@ request_item ::=
     header_decl:h       {: RESULT = h; :}
     | BODY EQUALS STRING:s SEMICOLON    {: RESULT = s; :}
     | BODY EQUALS MULTILINE_STRING:s SEMICOLON    {: RESULT = s; :}
-    | BODY EQUALS NUMBER:n 
-    {:
-        parser.report_error(formatError(nleft, "expected STRING after 'body ='"), null);
-        RESULT = "";
+    | BODY EQUALS NUMBER:n SEMICOLON    
+    {: 
+        System.err.println("Expected STRING after 'body =' at line " + nleft + ", column " + nright + ":");
+        System.err.println("   -> Body must be a string, not a number");
+        System.exit(1);
+        RESULT = null;
     :}
     ;
 
@@ -306,10 +282,17 @@ assertion ::=
     {:
         RESULT = new AssertionNode(AssertionNode.AssertionType.STATUS, code);
     :}
-    | EXPECT STATUS EQUALS STRING:s
+    | EXPECT STATUS IN NUMBER:min DOTDOT NUMBER:max SEMICOLON
     {:
-        parser.report_error(formatError(sleft, "expected NUMBER for status"), null);
-        RESULT = new AssertionNode(AssertionNode.AssertionType.STATUS, 0);
+        RESULT = new AssertionNode(AssertionNode.AssertionType.STATUS_RANGE, min, max);
+    :}
+    | EXPECT STATUS EQUALS STRING:s SEMICOLON
+    {:
+        System.err.println("Expected NUMBER for status at line " + sleft + ", column " + sright + ":");
+        System.err.println("   -> Status must be a number, not a string");
+        System.err.println("   -> Examples: 200, 201, 400");
+        System.exit(1);
+        RESULT = null;
     :}
     | EXPECT HEADER STRING:key EQUALS STRING:val SEMICOLON
     {:

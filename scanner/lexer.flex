@@ -28,6 +28,7 @@ WhiteSpace     = {LineTerminator} | [ \t\f]
 Comment        = "//" [^\r\n]*
 
 Identifier     = [A-Za-z_][A-Za-z0-9_]*
+InvalidIdentifier = [0-9]+[A-Za-z_][A-Za-z0-9_]*
 Number         = 0 | [1-9][0-9]*
 String         = \"([^\\\"]|\\.)*\"
 MultilineString = \"\"\"([^\"]|\"[^\"]|\"\"[^\"])*\"\"\"
@@ -49,14 +50,22 @@ MultilineString = \"\"\"([^\"]|\"[^\"]|\"\"[^\"])*\"\"\"
     "status"        { return symbol(sym.STATUS); }
     "body"          { return symbol(sym.BODY); }
     "contains"      { return symbol(sym.CONTAINS); }
+    "in"            { return symbol(sym.IN); }
 
     /* Operators and Delimiters */
     "="             { return symbol(sym.EQUALS); }
     ";"             { return symbol(sym.SEMICOLON); }
     "{"             { return symbol(sym.LBRACE); }
     "}"             { return symbol(sym.RBRACE); }
+    ".."            { return symbol(sym.DOTDOT); }
 
     /* Literals */
+    {InvalidIdentifier} {
+        System.err.println("Invalid identifier '" + yytext() + "' at line " + (yyline + 1) + ", column " + (yycolumn + 1) + ":");
+        System.err.println("   -> Identifiers cannot start with a digit");
+        System.err.println("   -> Valid examples: user1, userId, admin_role");
+        System.exit(1);
+    }
     {Identifier}    { return symbol(sym.IDENTIFIER, yytext()); }
     {Number}        { return symbol(sym.NUMBER, Integer.parseInt(yytext())); }
     {MultilineString} {
@@ -81,5 +90,15 @@ MultilineString = \"\"\"([^\"]|\"[^\"]|\"\"[^\"])*\"\"\"
 
 /* Error fallback */
 [^] { 
-    throw new Error("Illegal character <" + yytext() + "> at line " + (yyline + 1) + ", column " + (yycolumn + 1)); 
+    String errorChar = yytext();
+    System.err.println("Lexical Error at line " + (yyline + 1) + ", column " + (yycolumn + 1) + ":");
+    System.err.println("   -> Illegal character: '" + errorChar + "'");
+    
+    // Check if it might be part of an invalid identifier
+    if (errorChar.matches("[0-9]")) {
+        System.err.println("   -> Identifiers cannot start with a digit");
+        System.err.println("   -> Valid examples: user1, userId, admin_role");
+    }
+    
+    System.exit(1);
 }

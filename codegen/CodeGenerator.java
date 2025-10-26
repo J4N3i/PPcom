@@ -218,6 +218,13 @@ public class CodeGenerator {
                        ", resp.statusCode());");
                 break;
                 
+            case STATUS_RANGE:
+                println("assertTrue(resp.statusCode() >= " + assertion.getRangeMin() + 
+                       " && resp.statusCode() <= " + assertion.getRangeMax() + 
+                       ", \"Status code should be in range " + assertion.getRangeMin() + 
+                       ".." + assertion.getRangeMax() + " but was \" + resp.statusCode());");
+                break;
+                
             case HEADER_EQUALS:
                 println("assertEquals(\"" + escapeJava(assertion.getExpectedValue()) + "\", " +
                        "resp.headers().firstValue(\"" + escapeJava(assertion.getHeaderKey()) + 
