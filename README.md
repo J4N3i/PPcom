@@ -1,11 +1,11 @@
 
 <div align="center">
-  <h1 style="font-family: 'Fira Mono', 'Consolas', monospace; font-size: 2.5em; letter-spacing: 0.1em;">ZYPHER</h1>
+  <h1 style="font-family: 'Fira Mono', 'Consolas', monospace; font-size: 2.5em; letter-spacing: 0.1em;">TESTIFY</h1>
   <h3 style="font-family: 'Fira Mono', 'Consolas', monospace; font-size: 1.2em; color: #555;">A DSL for Effortless HTTP API Testing</h3>
-  <p><em>"Catch the wind of automation with <b>ZYPHER</b> — the breeze that powers your backend test suites."</em></p>
+  <p><em>"Simplify your API testing with <b>TESTIFY</b> — where automation meets elegance."</em></p>
 </div>
 
-## TestLang++ (ZYPHER) - Backend API Testing DSL
+## TestLang++ (TESTIFY) - Backend API Testing DSL
 
 A Domain-Specific Language (DSL) for HTTP API testing that compiles `.test` files into executable JUnit 5 tests using Java's HttpClient.
 
@@ -15,17 +15,18 @@ TestLang++ allows you to write declarative HTTP API tests that are compiled into
 
 ## 💻 System Requirements
 
-**Developed and tested on Arch Linux**
+**Developed and tested on MacBook**
 
-- **Operating System**: Linux (Arch Linux recommended) or macOS
-  - All scripts are written in **Bash** and should work on most Unix-like systems
-  - macOS users should have no issues running the project
-  - Windows users may need WSL (Windows Subsystem for Linux) or Git Bash
+- **Operating System**: macOS (primary) or Linux
+  - All scripts are written in **Bash** and thoroughly tested on macOS
+  - Developed and optimized for macOS environment
+  - Linux users should have no issues running the project
+  - Windows users may need Git Bash
 - **Java**: JDK 11 or higher
 - **Maven**: 3.6+ (for backend compilation)
 - **wget** or **curl**: For downloading dependencies
 
-> **Note**: This project was developed on Arch Linux. All build scripts (`.sh` files) are Bash scripts that work across Linux and macOS environments.
+> **Note**: This project was developed on MacBook Pro using macOS. All build scripts (`.sh` files) are Bash scripts that work seamlessly on macOS and are compatible with Linux environments.
 
 ## 📁 Project Structure
 
@@ -431,12 +432,11 @@ assertion     → 'expect' assertion_type ';'
 
 ## 📄 License
 
-Educational project for SE2062 course.
+Educational project for PP Module @sliit uni CS.
 
 ## 👤 Author
 
-**L-Jayawardhana**
+**J4N3i**
 
 Assignment: TestLang++ DSL Compiler  
-Course: SE2062 - Programming Paradigms  
-Due: October 25, 2025
+Course: SE2062 - Programming Paradigms
