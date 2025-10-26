@@ -6,35 +6,96 @@ import java.util.*;
 
 /* Parser code */
 parser code {:
+    // ANSI Colors
+    private static final String RED = "\u001B[31m";
+    private static final String GREEN = "\u001B[32m";
+    private static final String YELLOW = "\u001B[33m";
+    private static final String BLUE = "\u001B[34m";
+    private static final String MAGENTA = "\u001B[35m";
+    private static final String CYAN = "\u001B[36m";
+    private static final String RESET = "\u001B[0m";
+    private static final String BOLD = "\u001B[1m";
+    private static final String DIM = "\u001B[2m";
+    private static final String ITALIC = "\u001B[3m";
+
     public void syntax_error(Symbol cur_token) {
-        String errorMsg = "\n❌ Syntax Error at line " + cur_token.left + ", column " + cur_token.right;
-        
-        // Check what token was expected based on the current state
+        StringBuilder error = new StringBuilder();
         String tokenValue = cur_token.value != null ? cur_token.value.toString() : "unknown";
         
-        // Check if this is likely a missing semicolon after a request
+        // Error header with location
+        error.append("\n").append(RED).append(BOLD).append("╭── TestLang++ Syntax Error ").append(RESET)
+             .append(DIM).append("at line ").append(cur_token.left).append(", column ").append(cur_token.right).append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        
+        // Main error message with context
         if (cur_token.sym == sym.EXPECT) {
-            errorMsg = "Expected ';' after request at line " + cur_token.left + ", column " + cur_token.right + ":";
-            errorMsg += "\n   -> Expecting semicolon ';' after a request";
-            errorMsg += "\n   -> Example 1: GET \"/api/users\";";
-            errorMsg += "\n   -> Example 2: DELETE \"/api/users/1\";";
-            report_error(errorMsg, null);
-            System.exit(1);
-        }
-        // Provide specific error messages based on the token type
-        else if (cur_token.sym == sym.NUMBER) {
-            // Check if this appears after 'let' keyword - likely an invalid identifier
-            errorMsg += "\n   -> Invalid identifier '" + tokenValue + "'";
-            errorMsg += "\n   -> Identifiers cannot start with a digit";
-            errorMsg += "\n   -> Valid examples: user1, userId, admin_role";
-        } else if (tokenValue.matches("^[0-9].*")) {
-            errorMsg += "\n   -> Invalid identifier '" + tokenValue + "'";
-            errorMsg += "\n   -> Identifiers must start with a letter or underscore";
+            error.append(RED).append("│").append(RESET).append("  ").append(BOLD).append("⚠️  Missing Statement Terminator").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(YELLOW).append(" PROBLEM").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  A semicolon (;) is required after each HTTP request statement").append("\n");
+            error.append(RED).append("│").append(RESET).append("  This helps maintain clear statement boundaries in your test code").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(BLUE).append(" SOLUTION").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Add a semicolon after:").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • GET/POST/PUT/DELETE requests").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Variable declarations").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Configuration settings").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(CYAN).append(" EXAMPLES").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("GET \"/api/users\" expect status = 200").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("GET \"/api/users\"; expect status = 200;").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("POST \"/api/users\"; expect status = 201;").append(RESET).append("\n");
+        } else if (cur_token.sym == sym.NUMBER || tokenValue.matches("^[0-9].*")) {
+            error.append(RED).append("│").append(RESET).append("  ").append(BOLD).append("⚠️  Invalid Variable Name").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(YELLOW).append(" PROBLEM").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Invalid variable name found: ").append(ITALIC).append(tokenValue).append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Variable names have specific formatting rules in TestLang++").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(MAGENTA).append(" NAMING RULES").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Variable names must:").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Begin with a letter (a-z, A-Z) or underscore (_)").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Can contain letters, numbers, and underscores afterward").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Are case-sensitive (userId ≠ UserId)").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Cannot be reserved keywords (test, let, expect, etc.)").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(CYAN).append(" EXAMPLES").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("let 1user = \"admin\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("let user-name = \"john\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("let user1 = \"admin\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("let _user = \"admin\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("let userName = \"john\";").append(RESET).append("\n");
         } else {
-            errorMsg += "\n   -> Unexpected token: " + tokenValue;
+            error.append(RED).append("│").append(RESET).append("  ").append(BOLD).append("⚠️  Unexpected Syntax").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(YELLOW).append(" PROBLEM").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Found unexpected token: ").append(ITALIC).append(tokenValue).append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  This token doesn't match the expected syntax at this position").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(BLUE).append(" COMMON CAUSES").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  Check for:").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Misspelled keywords (GET, POST, expect, etc.)").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Missing quotes around string values").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Missing or extra punctuation (;, {, })").append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Incorrect statement order").append("\n");
+            error.append(RED).append("│").append(RESET).append("\n");
+            error.append(RED).append("├─").append(RESET).append(CYAN).append(" VALID SYNTAX PATTERNS").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  • HTTP Methods:   ").append(GREEN).append("GET \"/path\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Variables:      ").append(GREEN).append("let name = \"value\";").append(RESET).append("\n");
+            error.append(RED).append("│").append(RESET).append("  • Assertions:     ").append(GREEN).append("expect status = 200;").append(RESET).append("\n");
         }
         
-        report_error(errorMsg, null);
+        // Help footer with more context
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("╰─").append(RESET).append(" 💡 ").append(ITALIC)
+             .append("Need help? Refer to TestLang++ documentation for complete syntax guide and examples.")
+             .append(RESET).append("\n");
+        
+        report_error(error.toString(), null);
+        
+        if (cur_token.sym == sym.EXPECT) {
+            System.exit(1);
+        }
     }
 
     public void report_error(String message, Object info) {
@@ -269,8 +330,27 @@ request_item ::=
     | BODY EQUALS MULTILINE_STRING:s SEMICOLON    {: RESULT = s; :}
     | BODY EQUALS NUMBER:n SEMICOLON    
     {: 
-        System.err.println("Expected STRING after 'body =' at line " + nleft + ", column " + nright + ":");
-        System.err.println("   -> Body must be a string, not a number");
+        StringBuilder error = new StringBuilder();
+        error.append("\n").append(RED).append(BOLD).append("╭─ Type Error ").append(RESET)
+             .append(DIM).append("at line ").append(nleft).append(", column ").append(nright).append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(BOLD).append("Invalid request body type").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("├─").append(RESET).append(YELLOW).append(" DETAILS").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  Request bodies must be strings:").append("\n");
+        error.append(RED).append("│").append(RESET).append("  • Use quotes for JSON data").append("\n");
+        error.append("│  • Escape quotes in JSON with \\\"").append("\n");
+        error.append("│  • Use \"\"\" for multiline JSON").append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("├─").append(RESET).append(CYAN).append(" EXAMPLES").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("body = 123;").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("body = \"{\\\"value\\\": 123}\";").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("body = \"\"\"{\n").append(RESET)
+             .append(GREEN).append("    \"value\": 123\n").append(RESET)
+             .append(GREEN).append("  }\"\"\";").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("╰─").append(RESET).append(" TIP: Use multiline strings (\"\"\"...\"\"\") for better JSON readability.\n");
+        System.err.println(error.toString());
         System.exit(1);
         RESULT = null;
     :}
@@ -288,9 +368,29 @@ assertion ::=
     :}
     | EXPECT STATUS EQUALS STRING:s SEMICOLON
     {:
-        System.err.println("Expected NUMBER for status at line " + sleft + ", column " + sright + ":");
-        System.err.println("   -> Status must be a number, not a string");
-        System.err.println("   -> Examples: 200, 201, 400");
+        StringBuilder error = new StringBuilder();
+        error.append("\n").append(RED).append(BOLD).append("╭─ Type Error ").append(RESET)
+             .append(DIM).append("at line ").append(sleft).append(", column ").append(sright).append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(BOLD).append("Invalid status code type").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("├─").append(RESET).append(YELLOW).append(" DETAILS").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  HTTP status codes must be numbers:").append("\n");
+        error.append(RED).append("│").append(RESET).append("  • 2xx Success Codes:").append("\n");
+        error.append(RED).append("│").append(RESET).append("    200 (OK), 201 (Created), 204 (No Content)").append("\n");
+        error.append(RED).append("│").append(RESET).append("  • 4xx Client Error Codes:").append("\n");
+        error.append(RED).append("│").append(RESET).append("    400 (Bad Request), 401 (Unauthorized), 404 (Not Found)").append("\n");
+        error.append(RED).append("│").append(RESET).append("  • 5xx Server Error Codes:").append("\n");
+        error.append(RED).append("│").append(RESET).append("    500 (Internal Error), 503 (Service Unavailable)").append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("├─").append(RESET).append(CYAN).append(" EXAMPLES").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("expect status = \"200\";").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✗ Invalid: ").append(RESET).append(RED).append("expect status = \"OK\";").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("expect status = 200;").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("  ").append(DIM).append("✓ Valid:   ").append(RESET).append(GREEN).append("expect status in 200..299;").append(RESET).append("\n");
+        error.append(RED).append("│").append(RESET).append("\n");
+        error.append(RED).append("╰─").append(RESET).append(" TIP: You can use 'status in min..max' to match a range of status codes.\n");
+        System.err.println(error.toString());
         System.exit(1);
         RESULT = null;
     :}
