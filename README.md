@@ -88,7 +88,7 @@ test Login {
 Compile your `.test` file to Java:
 
 ```bash
-./scripts/run-compiler.sh examples/example.test output/GeneratedTests.java
+./scripts/run-compiler.sh input/example.test output/GeneratedTests.java
 ```
 
 ### 5. Run Backend
