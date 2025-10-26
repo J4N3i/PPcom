@@ -7,9 +7,27 @@ import java.util.*;
 /* Parser code */
 parser code {:
     public void syntax_error(Symbol cur_token) {
-        report_error("Syntax error at line " + cur_token.left + 
-                     ", column " + cur_token.right + 
-                     ", unexpected token: " + cur_token.value, null);
+        String msg = "";
+        if (cur_token.value != null) {
+            // Handle specific error cases
+            if (cur_token.value.toString().matches("^\\d.*") && previous_token().value.equals("let")) {
+                msg = "Line " + cur_token.left + ": expected IDENT after 'let' - Identifier cannot start with a digit";
+            } else if (cur_token.value instanceof Integer && previous_token().value.equals("body =")) {
+                msg = "Line " + cur_token.left + ": expected STRING after body = - Body must be a string";
+            } else if (cur_token.value instanceof String && previous_token().value.equals("status =")) {
+                msg = "Line " + cur_token.left + ": expected NUMBER for status";
+            } else if (cur_token.value instanceof String && !cur_token.value.toString().endsWith(";")) {
+                msg = "Line " + cur_token.left + ": expected ; after request";
+            } else {
+                msg = "Syntax error at line " + cur_token.left + 
+                      ", column " + cur_token.right + 
+                      " - unexpected token: " + cur_token.value;
+            }
+        } else {
+            msg = "Syntax error at line " + cur_token.left + 
+                  ", column " + cur_token.right;
+        }
+        report_error(msg, null);
     }
 
     public void report_error(String message, Object info) {
@@ -20,6 +38,11 @@ parser code {:
         System.err.println("Fatal syntax error at line " + cur_token.left + 
                           ", column " + cur_token.right);
         System.exit(1);
+    }
+
+    private Symbol previous_token() {
+        // Get access to the parser's internal state to find the previous token
+        return ((Symbol)stack.peek());
     }
 :};
 
@@ -132,6 +155,10 @@ variables ::=
 variable ::=
     LET IDENTIFIER:name EQUALS value:val SEMICOLON
     {:
+        // Check if identifier starts with a digit
+        if (name.matches("^\\d.*")) {
+            report_error("Identifier cannot start with a digit: " + name, null);
+        }
         RESULT = new VariableNode(name, val);
     :}
     ;
@@ -247,6 +274,11 @@ request_item ::=
     header_decl:h       {: RESULT = h; :}
     | BODY EQUALS STRING:s SEMICOLON    {: RESULT = s; :}
     | BODY EQUALS MULTILINE_STRING:s SEMICOLON    {: RESULT = s; :}
+    | BODY EQUALS NUMBER:n error
+    {:
+        report_error("Body must be a string, got number: " + n, null);
+        RESULT = "";
+    :}
     ;
 
 /* Assertions */
@@ -254,6 +286,11 @@ assertion ::=
     EXPECT STATUS EQUALS NUMBER:code SEMICOLON
     {:
         RESULT = new AssertionNode(AssertionNode.AssertionType.STATUS, code);
+    :}
+    | EXPECT STATUS EQUALS STRING error
+    {:
+        report_error("Status must be a number, got string instead", null);
+        RESULT = new AssertionNode(AssertionNode.AssertionType.STATUS, 0);
     :}
     | EXPECT HEADER STRING:key EQUALS STRING:val SEMICOLON
     {:
